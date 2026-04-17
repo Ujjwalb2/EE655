@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Style Transfer</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>🎨 Neural Style Transfer</h1>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="content" required><br><br>
+        <input type="file" name="style" required><br><br>
+
+        <button type="submit">Generate</button>
+    </form>
+
+    <div id="progressContainer" style="display:none;">
+        <p id="statusText">Starting...</p>
+        <progress id="progressBar" value="0" max="100"></progress>
+    </div>
+
+    <img id="resultImage" style="margin-top:20px; max-width:500px; display:none;">
+</div>
+
+<script>
+const form = document.getElementById("uploadForm");
+const progressBar = document.getElementById("progressBar");
+const statusText = document.getElementById("statusText");
+const progressContainer = document.getElementById("progressContainer");
+const resultImage = document.getElementById("resultImage");
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    progressContainer.style.display = "block";
+    resultImage.style.display = "none";
+
+    const formData = new FormData(form);
+
+    fetch("/", {
+        method: "POST",
+        body: formData
+    }).then(res => res.blob())
+      .then(blob => {
+          const url = URL.createObjectURL(blob);
+          resultImage.src = url;
+          resultImage.style.display = "block";
+          statusText.innerText = "Done!";
+      });
+
+    const interval = setInterval(async () => {
+        const res = await fetch("/progress");
+        const data = await res.json();
+
+        let percent = (data.step / data.total) * 100;
+        progressBar.value = percent;
+
+        statusText.innerText = `Processing: ${data.step} / ${data.total}`;
+
+        if (data.status === "done") {
+            clearInterval(interval);
+        }
+    }, 500);
+});
+</script>
+
+</body>
+</html>
